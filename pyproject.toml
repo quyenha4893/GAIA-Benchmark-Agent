@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "huggingface-final-assignment"
+version = "0.1.0"
+description = "Final Assignment for Hugging Face AI Agents Course"
+authors = ["Samuel Grummons <samuel.grummons@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+smolagents = "^1.14.0"
+pytz = "^2025.2"
+gradio = "^5.26.0"
+litellm = "^1.67.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
