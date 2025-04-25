@@ -1,11 +1,7 @@
-from smolagents import CodeAgent, DuckDuckGoSearchTool, GradioUI, LiteLLMModel
-from smolagents.utils import encode_image_base64, make_image_url
+from smolagents import CodeAgent, DuckDuckGoSearchTool, GradioUI, LiteLLMModel, PythonInterpreterTool
 import yaml
-#from Gradio_UI import GradioUI
-from langchain_ollama import ChatOllama
-from tools.final_answer import FinalAnswerTool
-import os
-from PIL import Image
+from tools.final_answer import FinalAnswerTool, check_reasoning
+from tools.tools import go_back, close_popups, search_item_ctrl_f, save_screenshot, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file, save_and_read_file
 
 from dotenv import load_dotenv
 
@@ -14,60 +10,53 @@ with open("prompts.yaml", 'r') as stream:
     prompt_templates = yaml.safe_load(stream)
 
 # Get the system prompt from the YAML file
-system_prompt = prompt_templates["system_prompt"]
+#system_prompt = prompt_templates["system_prompt"]
 
 search_tool = DuckDuckGoSearchTool()
+python_interpretor_tool = PythonInterpreterTool()
 
 search_model_name = 'granite3.3:latest'
-search_model = LiteLLMModel(model_id=f'ollama_chat/{search_model_name}')
+search_model = LiteLLMModel(model_id=f'ollama_chat/{search_model_name}',
+                            flatten_messages_as_text=True)
 
 web_agent = CodeAgent(
     model=search_model,
-    tools=[search_tool],
+    tools=[search_tool, go_back, close_popups, search_item_ctrl_f],
     max_steps=6,
     verbosity_level=1,
     grammar=None,
     planning_interval=None,
     name="web_agent",
     description="Browses the web to find information",
+    additional_authorized_imports=[],
+    prompt_templates=prompt_templates
+)
+
+image_model_name = 'gemma3:12b'
+image_model = LiteLLMModel(model_id=f'ollama_chat/{image_model_name}',
+                            flatten_messages_as_text=True)
+image_agent = CodeAgent(
+    model=image_model,
+    tools=[],
+    max_steps=6,
+    verbosity_level=1,
+    grammar=None,
+    planning_interval=None,
+    additional_authorized_imports=["PIL", "requests", "io"],
+    name="image_agent",
+    description="Review images and visual data for answers to questions based on visual data",
     prompt_templates=prompt_templates
 )
 
 react_model_name = 'cogito:14b'
 # Initialize the chat model
-react_model = LiteLLMModel(model_id=f'ollama_chat/{react_model_name}')
+react_model = LiteLLMModel(model_id=f'ollama_chat/{react_model_name}',
+                            flatten_messages_as_text=True)
 final_answer = FinalAnswerTool()
-
-def check_reasoning(final_answer, agent_memory):
-    model_name = 'cogito:14b'
-    multimodal_model = LiteLLMModel(model_id=f'ollama_chat/{model_name}')
-    prompt = f"""
-        Here is a user-given task and the agent steps: {agent_memory.get_succinct_steps()}. Now here is the answer that was given: 
-        {final_answer}
-        Please check that the reasoning process and results are correct: do they correctly answer the given task?
-        First list reasons why yes/no, then write your final decision: PASS in caps lock if it is satisfactory, FAIL if it is not.
-        Don't be harsh: if the result mostly solves the task, it should pass.
-        """
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": prompt,
-                }
-            ]
-        }
-    ]
-    output = multimodal_model(messages).content
-    print("Feedback: ", output)
-    if "FAIL" in output:
-        raise Exception(output)
-    return True
 
 manager_agent = CodeAgent(
     model=react_model,
-    tools=[final_answer],
+    tools=[python_interpretor_tool,download_file_from_url,extract_text_from_image, analyze_csv_file, analyze_excel_file, save_and_read_file,final_answer],
     managed_agents=[web_agent],
     additional_authorized_imports=[
         "geopandas",
@@ -86,4 +75,5 @@ manager_agent = CodeAgent(
     prompt_templates=prompt_templates
 )
 
-GradioUI(manager_agent).launch()
+if __name__ == "__main__":
+    GradioUI(manager_agent).launch()

@@ -6,11 +6,16 @@ authors = ["Samuel Grummons <samuel.grummons@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "3.12.6"
 smolagents = "^1.14.0"
 pytz = "^2025.2"
 gradio = "^5.26.0"
 litellm = "^1.67.2"
+gradiologin = "^0.1.0"
+helium = "^5.1.1"
+selenium = "^4.31.0"
+imageio = "^2.37.0"
+pytesseract = "^0.3.13"
 
 
 [build-system]
