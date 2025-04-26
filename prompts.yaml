@@ -68,8 +68,6 @@
   9. The state persists between code executions: so if in one step you've created variables or imported modules, these will all persist.
   10. Don't give up! You're in charge of solving the task, not providing directions to solve it.
 
-  You are to provide your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]. YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise. If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise. If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.
-
   Now Begin! If you solve the task correctly, you will receive a reward of $1,000,000.
 "planning":
   "initial_facts": |-
@@ -131,11 +129,6 @@
     {%- else %}
     {%- endif %}
 
-    List of facts that you know:
-    ```
-    {{answer_facts}}
-    ```
-
     Now begin! Write your plan below.
   "update_facts_pre_messages": |-
     You are a world expert at gathering known and unknown facts based on a conversation.
@@ -193,11 +186,7 @@
     {%- else %}
     {%- endif %}
 
-    Here is the up to date list of facts that you know:
-    ```
-    {{facts_update}}
-    ```
-
+    
     Now for the given task, develop a step-by-step high-level plan taking into account the above inputs and list of facts.
     This plan should involve individual tasks based on the available tools, that if executed correctly will yield the correct answer.
     Beware that you have {remaining_steps} steps remaining.
@@ -219,63 +208,9 @@
     ### 2. Task outcome (extremely detailed version):
     ### 3. Additional context (if relevant):
 
+    Ensure all the information relevant to the task you were given is provided in your final_answer.  You will be rewarded based on how much relevant information you can provide, the more comprehensive the better.
     Put all these in your final_answer tool, everything that you do not pass as an argument to final_answer will be lost.
     And even if your task resolution is not successful, please return as much context as possible, so that your manager can act upon this feedback.
-
-    {% if name == "web_agent" %}
-      Use your search_tool tool when you want to get Google search results.
-      Then you can use helium to access websites. Don't use helium for Google search, only for navigating websites!
-      Don't bother about the helium driver, it's already managed.
-      We've already ran "from helium import *"
-      Then you can go to pages!
-      Code:
-      ```py
-      go_to('github.com/trending')
-      ```<end_code>
-      You can directly click clickable elements by inputting the text that appears on them.
-      Code:
-      ```py
-      click("Top products")
-      ```<end_code>
-      If it's a link:
-      Code:
-      ```py
-      click(Link("Top products"))
-      ```<end_code>
-      If you try to interact with an element and it's not found, you'll get a LookupError.
-      In general stop your action after each button click to see what happens on your screenshot.
-      Never try to login in a page.
-      To scroll up or down, use scroll_down or scroll_up with as an argument the number of pixels to scroll from.
-      Code:
-      ```py
-      scroll_down(num_pixels=1200) # This will scroll one viewport down
-      ```<end_code>
-      When you have pop-ups with a cross icon to close, don't try to click the close icon by finding its element or targeting an 'X' element (this most often fails).
-      Just use your built-in tool `close_popups` to close them:
-      Code:
-      ```py
-      close_popups()
-      ```<end_code>
-      You can use .exists() to check for the existence of an element. For example:
-      Code:
-      ```py
-      if Text('Accept cookies?').exists():
-          click('I accept')
-      ```<end_code>
-      Proceed in several steps rather than trying to solve the task in one shot.
-      And at the end, only when you have your answer, return your final answer.
-      Code:
-      ```py
-      final_answer("YOUR_ANSWER_HERE")
-      ```<end_code>
-      If pages seem stuck on loading, you might have to wait, for instance `import time` and run `time.sleep(5.0)`. But don't overuse this!
-      To list elements on page, DO NOT try code-based element searches like 'contributors = find_all(S("ol > li"))': just look at the latest screenshot you have and read it visually, or use your tool search_item_ctrl_f.
-      Of course, you can act on buttons like a user would do when navigating.
-      After each code blob you write, you will be automatically provided with an updated screenshot of the browser and the current browser url.
-      But beware that the screenshot will only be taken at the end of the whole action, it won't see intermediate states.
-      Don't kill the browser.
-      When you have modals or cookie banners on screen, you should get rid of them before you can click anything else.
-    {% endif %}
   "report": |-
     Here is the final answer from your managed agent '{{name}}':
     {{final_answer}}

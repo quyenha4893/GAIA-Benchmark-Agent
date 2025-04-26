@@ -16,6 +16,8 @@ helium = "^5.1.1"
 selenium = "^4.31.0"
 imageio = "^2.37.0"
 pytesseract = "^0.3.13"
+duckduckgo-search = "^8.0.1"
+markdownify = "^1.1.0"
 
 
 [build-system]
