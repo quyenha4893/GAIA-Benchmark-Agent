@@ -38,26 +38,26 @@ class ThinkingLiteLLMModel(LiteLLMModel):
         # prepend onto whatever messages the Agent built
         return super().__call__([thinking_msg] + messages, **kwargs)
 
-# search_model_name = 'granite3.3:latest'
+search_model_name = 'granite3.3:latest'
 # search_model_name = 'cogito:14b'
-search_model_name = 'qwen2:7b'
+# search_model_name = 'qwen2:7b'
 search_model = ThinkingLiteLLMModel(model_id=f'ollama_chat/{search_model_name}',
                              flatten_messages_as_text=True)
 
-search_tool = DuckDuckGoSearchTool()
+web_search = DuckDuckGoSearchTool()
 python_interpretor_tool = PythonInterpreterTool()
-visit_webpage_tool = VisitWebpageTool()
+visit_webpage = VisitWebpageTool()
 final_answer = FinalAnswerTool()
 
 web_agent = CodeAgent(
     model=search_model,
-    tools=[search_tool, visit_webpage_tool, final_answer],
+    tools=[web_search, visit_webpage, final_answer],
     max_steps=6,
     verbosity_level=1,
     grammar=None,
     planning_interval=6,
     name="web_agent",
-    description="Browses the web to find information",
+    description="Searches the web using the and reviews web pages to find information.",
     additional_authorized_imports=['bs4', 'requests', 'io'],
     prompt_templates=prompt_templates
 )

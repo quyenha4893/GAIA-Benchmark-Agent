@@ -4,7 +4,7 @@ from smolagents import LiteLLMModel
 
 class FinalAnswerTool(Tool):
     name = "final_answer"
-    description = "Provides a final answer to the given problem."
+    description = "Used to submit the final answer to the problem."
     inputs = {'answer': {'type': 'any', 'description': 'The final answer to the problem'}}
     output_type = "any"
 
