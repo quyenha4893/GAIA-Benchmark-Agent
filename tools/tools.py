@@ -1,13 +1,17 @@
 import tempfile
 import requests
 import os
+import numpy as np
+import helium
 
 from io import BytesIO
 from time import sleep
 from urllib.parse import urlparse
-from typing import Optional
+from typing import Optional, List
+import yt_dlp
+import imageio
 
-import helium
+
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -46,6 +50,58 @@ def initialize_driver():
     chrome_options.add_argument("--disable-pdf-viewer")
     chrome_options.add_argument("--window-position=0,0")
     return helium.start_chrome(headless=False, options=chrome_options)
+
+
+@tool
+def youtube_frames_to_images(url: str, sample_interval_seconds: int = 5) -> List[Image.Image]:
+    """
+    Reviews a YouTube video and returns a List of PIL Images (List[PIL.Image.Image]), which can then be reviewed by a vision model.
+    Args:
+        url: The Youtube URL
+        sample_interval_seconds: The sampling interval (default is 5 seconds)
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Download the video locally
+        ydl_opts = {
+            'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
+            'outtmpl': os.path.join(tmpdir, 'video.%(ext)s'),
+            'quiet': True,
+            'noplaylist': True,
+            'merge_output_format': 'mp4',
+            'force_ipv4': True,  # Avoid IPv6 issues
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+        
+        # Find the downloaded file
+        video_path = None
+        for file in os.listdir(tmpdir):
+            if file.endswith('.mp4'):
+                video_path = os.path.join(tmpdir, file)
+                break
+        
+        if not video_path:
+            raise RuntimeError("Failed to download video as mp4")
+
+        # ✅ Fix: Use `imageio.get_reader()` instead of `imopen()`
+        reader = imageio.get_reader(video_path)  # Works for frame-by-frame iteration
+        metadata = reader.get_meta_data()
+        fps = metadata.get('fps')
+        
+        if fps is None:
+            reader.close()
+            raise RuntimeError("Unable to determine FPS from video metadata")
+
+        frame_interval = int(fps * sample_interval_seconds)
+        images: List[Image.Image] = []
+
+        # ✅ Iterate over frames using `get_reader()`
+        for idx, frame in enumerate(reader):
+            if idx % frame_interval == 0:
+                images.append(Image.fromarray(frame))
+
+        reader.close()
+        return images
 
 @tool
 def search_item_ctrl_f(text: str, nth_result: int = 1) -> str:
