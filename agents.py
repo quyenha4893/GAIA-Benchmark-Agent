@@ -10,11 +10,21 @@ sm_models.MessageRole.roles = _roles_with_control
 
 
 
-from smolagents import CodeAgent, DuckDuckGoSearchTool, GradioUI, LiteLLMModel, PythonInterpreterTool, OpenAIServerModel, ChatMessage, ToolCallingAgent, VisitWebpageTool
+from smolagents import (CodeAgent, 
+                        GradioUI, 
+                        LiteLLMModel, 
+                        OpenAIServerModel, 
+                        ChatMessage, 
+                        ToolCallingAgent)
+from smolagents.default_tools import (DuckDuckGoSearchTool, 
+                                      VisitWebpageTool, 
+                                      WikipediaSearchTool, 
+                                      SpeechToTextTool,
+                                      PythonInterpreterTool)
 import yaml
 from tools.final_answer import FinalAnswerTool, check_reasoning, ensure_formatting
-#from tools.tools import go_back, close_popups, search_item_ctrl_f, save_screenshot, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file, save_and_read_file
-
+from tools.tools import youtube_frames_to_images, use_vision_model
+import os
 from dotenv import load_dotenv
 
 # Load prompts from YAML file
@@ -38,56 +48,66 @@ class ThinkingLiteLLMModel(LiteLLMModel):
         # prepend onto whatever messages the Agent built
         return super().__call__([thinking_msg] + messages, **kwargs)
 
-search_model_name = 'granite3.3:latest'
-# search_model_name = 'cogito:14b'
+# search_model_name = 'granite3.3:latest'
+search_model_name = 'cogito:14b'
 # search_model_name = 'qwen2:7b'
 search_model = ThinkingLiteLLMModel(model_id=f'ollama_chat/{search_model_name}',
                              flatten_messages_as_text=True)
 
-web_search = DuckDuckGoSearchTool()
-python_interpretor_tool = PythonInterpreterTool()
-visit_webpage = VisitWebpageTool()
-final_answer = FinalAnswerTool()
-
 web_agent = CodeAgent(
     model=search_model,
-    tools=[web_search, visit_webpage, final_answer],
+    tools=[DuckDuckGoSearchTool(), VisitWebpageTool(), FinalAnswerTool()],
     max_steps=6,
     verbosity_level=1,
     grammar=None,
     planning_interval=6,
     name="web_agent",
     description="Searches the web using the and reviews web pages to find information.",
-    additional_authorized_imports=['bs4', 'requests', 'io'],
+    additional_authorized_imports=['bs4', 'requests', 'io', 'wiki'],
     prompt_templates=prompt_templates
 )
 
-image_model_name = 'gemma3:12b'
-image_model = LiteLLMModel(model_id=f'ollama_chat/{image_model_name}',
-                            flatten_messages_as_text=True)
-image_agent = CodeAgent(
+image_model_name = 'llama3.2-vision'
+image_model = OpenAIServerModel(model_id=image_model_name,
+                                api_base='http://localhost:11434/v1/',
+                                api_key='ollama',
+                            flatten_messages_as_text=False)
+image_agent = ToolCallingAgent(
     model=image_model,
-    tools=[],
-    max_steps=6,
-    verbosity_level=1,
+    tools=[FinalAnswerTool()],
+    max_steps=4,
+    verbosity_level=2,
     grammar=None,
-    planning_interval=None,
-    additional_authorized_imports=["PIL", "requests", "io"],
+    planning_interval=6,
+    #additional_authorized_imports=["PIL", "requests", "io", "numpy"],
     name="image_agent",
-    description="Review images and visual data for answers to questions based on visual data",
+    description="Review images and videos for answers to questions based on visual data",
     prompt_templates=prompt_templates
 )
 
-react_model_name = 'cogito:14b'
-# Initialize the chat model
-react_model = LiteLLMModel(model_id=f'ollama_chat/{react_model_name}',
-                            flatten_messages_as_text=True)
+# react_model_name = 'mistral-small3.1:24b'
+# # Initialize the chat model
+# react_model = OpenAIServerModel(model_id=react_model_name,
+#                                 api_base='http://localhost:11434/v1/',
+#                                 api_key='ollama',
+#                             flatten_messages_as_text=False)
+
+react_model_name = "gemini/gemini-2.0-flash-exp"
+react_model = LiteLLMModel(model_id=react_model_name, 
+                           api_key=os.getenv("GEMINI_KEY"),
+                           temperature=0.2
+                           )
 
 
 manager_agent = CodeAgent(
     model=react_model,
-    tools=[final_answer],
-    managed_agents=[web_agent],
+    tools=[FinalAnswerTool(), 
+           DuckDuckGoSearchTool(), 
+           VisitWebpageTool(), 
+           WikipediaSearchTool(),
+           SpeechToTextTool(),
+           ],
+    managed_agents=[],
     additional_authorized_imports=[],
     max_steps=6,
     verbosity_level=1,

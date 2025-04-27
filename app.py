@@ -3,10 +3,10 @@ import gradio as gr
 import requests
 import pandas as pd
 import os
-from app import manager_agent
-import csv
+from agents import manager_agent
 from datetime import datetime
 from typing import Optional
+import time
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -22,6 +22,7 @@ class BasicAgent:
         print(f"Agent received question: {question[:50]}... with files: {files}")
         result = self.answer_question(question, files)
         print(f"Agent returning answer: {result}")
+        time.sleep(60)
         return result
     def answer_question(self, question: str, task_file_path: Optional[str] = None) -> str:
         """
@@ -194,7 +195,7 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
         print(f"Error instantiating agent: {e}")
         return f"Error initializing agent: {e}", None
     # In the case of an app running as a hugging Face space, this link points toward your codebase ( usefull for others so please keep it public)
-    agent_code = f"https://huggingface.co/spaces/{space_id}/tree/main"
+    agent_code = f"https://github.com/ssgrummons/huggingface_final_assignment"
     print(agent_code)
 
     # 2. Fetch Questions

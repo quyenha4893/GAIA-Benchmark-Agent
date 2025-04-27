@@ -3,6 +3,7 @@ import requests
 import os
 import numpy as np
 import helium
+import base64
 
 from io import BytesIO
 from time import sleep
@@ -17,7 +18,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from smolagents import CodeAgent, tool
+from smolagents import CodeAgent, tool, OpenAIServerModel
 from smolagents.agents import ActionStep
 
 
@@ -51,11 +52,61 @@ def initialize_driver():
     chrome_options.add_argument("--window-position=0,0")
     return helium.start_chrome(headless=False, options=chrome_options)
 
+@tool
+def use_vision_model(question: str, images: List[Image.Image]) -> str:
+    """
+    Use a Vision Model to answer a question about a set of images.  
+    Always use this tool to ask questions about a set of images you have been provided
+    
+    Args:
+        question: The question to ask about the images.  Type: str
+        images: The list of images to as the question about.  Type: List[PIL.Image.Image]
+    """
+    image_model_name = 'llama3.2-vision'
+    image_model = OpenAIServerModel(
+        model_id=image_model_name,
+        api_base='http://localhost:11434/v1/',
+        api_key='ollama',
+        flatten_messages_as_text=False
+    )
+
+    image_model_name = 'llama3.2-vision'
+    image_model = OpenAIServerModel(
+        model_id=image_model_name,
+        api_base='http://localhost:11434/v1/',
+        api_key='ollama',
+        flatten_messages_as_text=False
+    )
+
+    content = [
+        {
+            "type": "text",
+            "text": question
+        }
+    ]
+
+    for image in images:
+        content.append({
+            "type": "image",
+            "image": image  # ✅ Directly the PIL Image, no wrapping
+        })
+
+    messages = [
+        {
+            "role": "user",
+            "content": content
+        }
+    ]
+
+    output = image_model(messages).content
+    return output
 
 @tool
 def youtube_frames_to_images(url: str, sample_interval_seconds: int = 5) -> List[Image.Image]:
     """
     Reviews a YouTube video and returns a List of PIL Images (List[PIL.Image.Image]), which can then be reviewed by a vision model.
+    Only use this tool if you have been given a YouTube video that you need to analyze.
+    This will generate a list of images, and you can use the use_vision_model tool to analyze those images
     Args:
         url: The Youtube URL
         sample_interval_seconds: The sampling interval (default is 5 seconds)

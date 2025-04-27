@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.12.6"
-smolagents = "^1.14.0"
+smolagents = {extras = ["transformers"], version = "^1.14.0"}
 pytz = "^2025.2"
 gradio = "^5.26.0"
 litellm = "^1.67.2"
@@ -21,6 +21,8 @@ markdownify = "^1.1.0"
 pytube = "^15.0.0"
 pillow = "^11.2.1"
 yt-dlp = "^2025.3.31"
+wikipedia-api = "^0.8.1"
+transformers = "^4.51.3"
 
 
 [build-system]
