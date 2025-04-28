@@ -7,15 +7,23 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.12.6"
-smolagents = "^1.14.0"
+smolagents = {extras = ["transformers"], version = "^1.14.0"}
 pytz = "^2025.2"
 gradio = "^5.26.0"
 litellm = "^1.67.2"
 gradiologin = "^0.1.0"
 helium = "^5.1.1"
 selenium = "^4.31.0"
-imageio = "^2.37.0"
+imageio = {extras = ["ffmpeg"], version = "^2.37.0"}
 pytesseract = "^0.3.13"
+duckduckgo-search = "^8.0.1"
+markdownify = "^1.1.0"
+pytube = "^15.0.0"
+pillow = "^11.2.1"
+yt-dlp = "^2025.3.31"
+wikipedia-api = "^0.8.1"
+transformers = "^4.51.3"
+openai-whisper = "^20240930"
 
 
 [build-system]
