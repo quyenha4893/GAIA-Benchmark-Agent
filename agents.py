@@ -23,9 +23,10 @@ from smolagents.default_tools import (DuckDuckGoSearchTool,
                                       PythonInterpreterTool)
 import yaml
 from tools.final_answer import FinalAnswerTool, check_reasoning, ensure_formatting
-from tools.tools import youtube_frames_to_images, use_vision_model, search_item_ctrl_f, go_back, close_popups, save_and_read_file, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file
+from tools.tools import youtube_frames_to_images, use_vision_model, search_item_ctrl_f, go_back, close_popups, save_and_read_file, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file, youtube_transcribe
 import os
 from dotenv import load_dotenv
+import time
 
 # Load prompts from YAML file
 with open("prompts.yaml", 'r') as stream:
@@ -47,6 +48,15 @@ class ThinkingLiteLLMModel(LiteLLMModel):
         }
         # prepend onto whatever messages the Agent built
         return super().__call__([thinking_msg] + messages, **kwargs)
+    
+class SlowLiteLLMModel(LiteLLMModel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, messages, **kwargs) -> ChatMessage:
+        time.sleep(5)
+        # prepend onto whatever messages the Agent built
+        return super().__call__(messages, **kwargs)
 
 # search_model_name = 'granite3.3:latest'
 search_model_name = 'cogito:14b'
@@ -93,7 +103,7 @@ image_agent = ToolCallingAgent(
 #                             flatten_messages_as_text=False)
 
 react_model_name = "gemini/gemini-2.0-flash-exp"
-react_model = LiteLLMModel(model_id=react_model_name, 
+react_model = SlowLiteLLMModel(model_id=react_model_name, 
                            api_key=os.getenv("GEMINI_KEY"),
                            temperature=0.2
                            )
@@ -106,8 +116,8 @@ manager_agent = CodeAgent(
            VisitWebpageTool(), 
            WikipediaSearchTool(),
            SpeechToTextTool(),
-           use_vision_model,
            youtube_frames_to_images,
+           youtube_transcribe,
            search_item_ctrl_f, go_back, close_popups, 
            save_and_read_file, download_file_from_url, 
            extract_text_from_image, 
@@ -115,7 +125,7 @@ manager_agent = CodeAgent(
            ],
     managed_agents=[],
     additional_authorized_imports=['os'],
-    max_steps=6,
+    max_steps=10,
     verbosity_level=1,
     planning_interval=6,
     name="Manager",

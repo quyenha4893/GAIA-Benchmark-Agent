@@ -42,16 +42,14 @@ def check_reasoning(final_answer, agent_memory):
         raise Exception(output)
     return True
 
-def ensure_formatting(final_answer, agent_memory, task):
+def ensure_formatting(final_answer, agent_memory):
     # Ensure the final answer is formatted correctly
     model_name = 'granite3.3:8b'
     # Initialize the chat model
     model = LiteLLMModel(model_id=f'ollama_chat/{model_name}',
                              flatten_messages_as_text=True)
     prompt = f"""
-        Here is a user-given task 
-        {task}
-        Here are the agent steps: {agent_memory.get_succinct_steps()}. Now here is the FINAL ANSWER that was given: 
+        Here is a user-given task and the agent steps: {agent_memory.get_succinct_steps()}. Now here is the FINAL ANSWER that was given: 
         {final_answer}
         Ensure the FINAL ANSWER is in the right format as asked for by the task.  Here are the instructions that you need to evaluate:
         YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. 

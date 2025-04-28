@@ -23,6 +23,7 @@ pillow = "^11.2.1"
 yt-dlp = "^2025.3.31"
 wikipedia-api = "^0.8.1"
 transformers = "^4.51.3"
+openai-whisper = "^20240930"
 
 
 [build-system]

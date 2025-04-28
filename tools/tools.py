@@ -350,5 +350,43 @@ def analyze_excel_file(file_path: str, query: str) -> str:
     except Exception as e:
         return f"Error analyzing Excel file: {str(e)}"
 
+import whisper
+@tool
+def youtube_transcribe(url: str) -> str:
+    """
+    Transcribes a YouTube video.  Use when you need to process the audio from a YouTube video into Text.
+
+    Args:
+        url: Url of the YouTube video
+    """
+    model_size: str = "small"
+    # Load model
+    model = whisper.load_model(model_size)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Download audio
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(tmpdir, 'audio.%(ext)s'),
+            'quiet': True,
+            'noplaylist': True,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'wav',
+                'preferredquality': '192',
+            }],
+            'force_ipv4': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+
+        audio_path = next((os.path.join(tmpdir, f) for f in os.listdir(tmpdir) if f.endswith('.wav')), None)
+        if not audio_path:
+            raise RuntimeError("Failed to find audio")
+
+        # Transcribe
+        result = model.transcribe(audio_path)
+        return result['text']
+
+
 global driver
 driver = initialize_driver()
