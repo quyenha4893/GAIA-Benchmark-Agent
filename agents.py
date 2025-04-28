@@ -23,7 +23,7 @@ from smolagents.default_tools import (DuckDuckGoSearchTool,
                                       PythonInterpreterTool)
 import yaml
 from tools.final_answer import FinalAnswerTool, check_reasoning, ensure_formatting
-from tools.tools import youtube_frames_to_images, use_vision_model
+from tools.tools import youtube_frames_to_images, use_vision_model, search_item_ctrl_f, go_back, close_popups, save_and_read_file, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file
 import os
 from dotenv import load_dotenv
 
@@ -106,9 +106,15 @@ manager_agent = CodeAgent(
            VisitWebpageTool(), 
            WikipediaSearchTool(),
            SpeechToTextTool(),
+           use_vision_model,
+           youtube_frames_to_images,
+           search_item_ctrl_f, go_back, close_popups, 
+           save_and_read_file, download_file_from_url, 
+           extract_text_from_image, 
+           analyze_csv_file, analyze_excel_file
            ],
     managed_agents=[],
-    additional_authorized_imports=[],
+    additional_authorized_imports=['os'],
     max_steps=6,
     verbosity_level=1,
     planning_interval=6,

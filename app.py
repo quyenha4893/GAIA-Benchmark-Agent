@@ -43,26 +43,16 @@ class BasicAgent:
             
             # Create a context with file information if available
             context = question
-            file_content = None
             
             # If there's a file, read it and include its content in the context
             if task_file_path:
                 try:
-                    with open(task_file_path, 'r') as f:
-                        file_content = f.read()
-                    
-                    # Determine file type from extension
-                    import os
-                    file_ext = os.path.splitext(task_file_path)[1].lower()
-                    
                     context = f"""
 Question: {question}
 
-This question has an associated file. Here is the file content:
-
-```{file_ext}
-{file_content}
-```
+This question has an associated file. You can download the file from 
+{DEFAULT_API_URL}/files/{task_file_path}
+using the download_file_from_url tool.
 
 Analyze the file content above to answer the question.
 """
@@ -226,12 +216,16 @@ def run_and_submit_all( profile: gr.OAuthProfile | None):
     for item in questions_data:
         task_id = item.get("task_id")
         question_text = item.get("question")
-        files = [item.get("file_name")]
+        files = item.get("file_name")
         if not task_id or question_text is None:
             print(f"Skipping item with missing task_id or question: {item}")
             continue
         try:
-            submitted_answer = agent(question_text, files)
+            if files is None or files == '':
+                print(files)
+                submitted_answer = agent(question_text)
+            else:
+                submitted_answer = agent(question_text, task_id)
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:

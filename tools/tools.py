@@ -174,7 +174,7 @@ def search_item_ctrl_f(text: str, nth_result: int = 1) -> str:
 
 @tool
 def go_back() -> None:
-    """Goes back to previous page."""
+    """Used when navigating web pages using Helium.  Goes back to previous page."""
     driver.back()
 
 
@@ -214,7 +214,9 @@ def save_and_read_file(content: str, filename: Optional[str] = None) -> str:
 @tool
 def download_file_from_url(url: str, filename: Optional[str] = None) -> str:
     """
-    Download a file from a URL and save it to a temporary location.
+    Download a file from a URL and save it to a temporary location.  
+    Use this tool when you are asked a question and told that there is a file or image provided.
+
     
     Args:
         url: The URL to download from
@@ -225,6 +227,7 @@ def download_file_from_url(url: str, filename: Optional[str] = None) -> str:
     """
     try:
         # Parse URL to get filename if not provided
+        print(f"Downloading file from {url}")
         if not filename:
             path = urlparse(url).path
             filename = os.path.basename(path)
@@ -281,7 +284,9 @@ def extract_text_from_image(image_path: str) -> str:
 @tool
 def analyze_csv_file(file_path: str, query: str) -> str:
     """
-    Analyze a CSV file using pandas and answer a question about it.
+    Analyze a CSV file using pandas and answer a question about it.  
+    To use this file you need to have saved it in a location and pass that location to the function.
+    The download_file_from_url tool will save it by name to tempfile.gettempdir()
     
     Args:
         file_path: Path to the CSV file
@@ -314,6 +319,8 @@ def analyze_csv_file(file_path: str, query: str) -> str:
 def analyze_excel_file(file_path: str, query: str) -> str:
     """
     Analyze an Excel file using pandas and answer a question about it.
+    To use this file you need to have saved it in a location and pass that location to the function.
+    The download_file_from_url tool will save it by name to tempfile.gettempdir()
     
     Args:
         file_path: Path to the Excel file
