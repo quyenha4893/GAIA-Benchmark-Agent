@@ -56,7 +56,8 @@ def initialize_driver():
 def use_vision_model(question: str, images: List[Image.Image]) -> str:
     """
     Use a Vision Model to answer a question about a set of images.  
-    Always use this tool to ask questions about a set of images you have been provided
+    Always use this tool to ask questions about a set of images you have been provided.
+    You can add a list of one image or multiple images.
     
     Args:
         question: The question to ask about the images.  Type: str
