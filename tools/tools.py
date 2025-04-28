@@ -71,14 +71,6 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
         flatten_messages_as_text=False
     )
 
-    image_model_name = 'llama3.2-vision'
-    image_model = OpenAIServerModel(
-        model_id=image_model_name,
-        api_base='http://localhost:11434/v1/',
-        api_key='ollama',
-        flatten_messages_as_text=False
-    )
-
     content = [
         {
             "type": "text",
