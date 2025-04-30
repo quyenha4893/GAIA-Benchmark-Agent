@@ -22,7 +22,7 @@ class BasicAgent:
         print(f"Agent received question: {question[:50]}... with files: {files}")
         result = self.answer_question(question, files)
         print(f"Agent returning answer: {result}")
-        time.sleep(60)
+        #time.sleep(60)
         return result
     def answer_question(self, question: str, task_file_path: Optional[str] = None) -> str:
         """

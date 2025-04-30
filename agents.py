@@ -23,7 +23,11 @@ from smolagents.default_tools import (DuckDuckGoSearchTool,
                                       PythonInterpreterTool)
 import yaml
 from tools.final_answer import FinalAnswerTool, check_reasoning, ensure_formatting
-from tools.tools import youtube_frames_to_images, use_vision_model, search_item_ctrl_f, go_back, close_popups, save_and_read_file, download_file_from_url, extract_text_from_image, analyze_csv_file, analyze_excel_file, youtube_transcribe
+from tools.tools import (youtube_frames_to_images, use_vision_model, 
+                         read_file, download_file_from_url, 
+                         extract_text_from_image, analyze_csv_file, 
+                         analyze_excel_file, youtube_transcribe,
+                         transcribe_audio)
 import os
 from dotenv import load_dotenv
 import time
@@ -56,7 +60,7 @@ class SlowLiteLLMModel(LiteLLMModel):
         super().__init__(*args, **kwargs)
 
     def __call__(self, messages, **kwargs) -> ChatMessage:
-        time.sleep(5)
+        time.sleep(15)
         # prepend onto whatever messages the Agent built
         return super().__call__(messages, **kwargs)
 
@@ -97,15 +101,15 @@ class SlowLiteLLMModel(LiteLLMModel):
 #     prompt_templates=prompt_templates
 # )
 
-# react_model_name = 'mistral-small3.1:24b'
+# react_model_name = 'qwen2:7b'
 # # Initialize the chat model
 # react_model = OpenAIServerModel(model_id=react_model_name,
 #                                 api_base='http://localhost:11434/v1/',
 #                                 api_key='ollama',
 #                             flatten_messages_as_text=False)
 
-react_model_name = "gemini/gemini-2.0-flash-exp"
-react_model = SlowLiteLLMModel(model_id=react_model_name, 
+react_model_name = "gemini/gemini-2.5-pro-preview-03-25"
+react_model = LiteLLMModel(model_id=react_model_name, 
                            api_key=os.getenv("GEMINI_KEY"),
                            temperature=0.2
                            )
@@ -120,13 +124,14 @@ manager_agent = CodeAgent(
            SpeechToTextTool(),
            youtube_frames_to_images,
            youtube_transcribe,
-           search_item_ctrl_f, go_back, close_popups, 
-           save_and_read_file, download_file_from_url, 
+           use_vision_model,
+           read_file, download_file_from_url, 
            extract_text_from_image, 
-           analyze_csv_file, analyze_excel_file
+           analyze_csv_file, analyze_excel_file,
+           transcribe_audio
            ],
     managed_agents=[],
-    additional_authorized_imports=['os'],
+    additional_authorized_imports=['os', 'pandas'],
     max_steps=10,
     verbosity_level=1,
     planning_interval=6,

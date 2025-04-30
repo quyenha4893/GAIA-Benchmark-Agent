@@ -23,47 +23,82 @@ from smolagents.agents import ActionStep
 
 
 
-def save_screenshot(memory_step: ActionStep, agent: CodeAgent) -> None:
-    sleep(1.0)  # Let JavaScript animations happen before taking the screenshot
-    driver = helium.get_driver()
-    current_step = memory_step.step_number
-    if driver is not None:
-        for previous_memory_step in agent.memory.steps:  # Remove previous screenshots from logs for lean processing
-            if isinstance(previous_memory_step, ActionStep) and previous_memory_step.step_number <= current_step - 2:
-                previous_memory_step.observations_images = None
-        png_bytes = driver.get_screenshot_as_png()
-        image = Image.open(BytesIO(png_bytes))
-        print(f"Captured a browser screenshot: {image.size} pixels")
-        memory_step.observations_images = [image.copy()]  # Create a copy to ensure it persists, important!
+# def save_screenshot(memory_step: ActionStep, agent: CodeAgent) -> None:
+#     sleep(1.0)  # Let JavaScript animations happen before taking the screenshot
+#     driver = helium.get_driver()
+#     current_step = memory_step.step_number
+#     if driver is not None:
+#         for previous_memory_step in agent.memory.steps:  # Remove previous screenshots from logs for lean processing
+#             if isinstance(previous_memory_step, ActionStep) and previous_memory_step.step_number <= current_step - 2:
+#                 previous_memory_step.observations_images = None
+#         png_bytes = driver.get_screenshot_as_png()
+#         image = Image.open(BytesIO(png_bytes))
+#         print(f"Captured a browser screenshot: {image.size} pixels")
+#         memory_step.observations_images = [image.copy()]  # Create a copy to ensure it persists, important!
 
-    # Update observations with current URL
-    url_info = f"Current url: {driver.current_url}"
-    memory_step.observations = (
-        url_info if memory_step.observations is None else memory_step.observations + "\n" + url_info
-    )
-    return
+#     # Update observations with current URL
+#     url_info = f"Current url: {driver.current_url}"
+#     memory_step.observations = (
+#         url_info if memory_step.observations is None else memory_step.observations + "\n" + url_info
+#     )
+#     return
 
-def initialize_driver():
-    """Initialize the Selenium WebDriver."""
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--force-device-scale-factor=1")
-    chrome_options.add_argument("--window-size=1000,1350")
-    chrome_options.add_argument("--disable-pdf-viewer")
-    chrome_options.add_argument("--window-position=0,0")
-    return helium.start_chrome(headless=False, options=chrome_options)
+# def initialize_driver():
+#     """Initialize the Selenium WebDriver."""
+#     chrome_options = webdriver.ChromeOptions()
+#     chrome_options.add_argument("--force-device-scale-factor=1")
+#     chrome_options.add_argument("--window-size=1000,1350")
+#     chrome_options.add_argument("--disable-pdf-viewer")
+#     chrome_options.add_argument("--window-position=0,0")
+#     return helium.start_chrome(headless=False, options=chrome_options)
+
+# @tool
+# def search_item_ctrl_f(text: str, nth_result: int = 1) -> str:
+#     """
+#     Searches for text on the current page via Ctrl + F and jumps to the nth occurrence.
+#     Args:
+#         text: The text to search for
+#         nth_result: Which occurrence to jump to (default: 1)
+#     """
+#     elements = driver.find_elements(By.XPATH, f"//*[contains(text(), '{text}')]")
+#     if nth_result > len(elements):
+#         raise Exception(f"Match n°{nth_result} not found (only {len(elements)} matches found)")
+#     result = f"Found {len(elements)} matches for '{text}'."
+#     elem = elements[nth_result - 1]
+#     driver.execute_script("arguments[0].scrollIntoView(true);", elem)
+#     result += f"Focused on element {nth_result} of {len(elements)}"
+#     return result
+
+
+# @tool
+# def go_back() -> None:
+#     """Used when navigating web pages using Helium.  Goes back to previous page."""
+#     driver.back()
+
+
+# @tool
+# def close_popups() -> str:
+#     """
+#     Closes any visible modal or pop-up on the page. Use this to dismiss pop-up windows! This does not work on cookie consent banners.
+#     """
+#     webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
 
 @tool
 def use_vision_model(question: str, images: List[Image.Image]) -> str:
     """
     Use a Vision Model to answer a question about a set of images.  
     Always use this tool to ask questions about a set of images you have been provided.
-    You can add a list of one image or multiple images.
+    This function uses an image-to-text AI model.  
+    Send a list of multiple images when possible.  This AI model can handle multiple images.
+    So, if you have multiple images that you want to ask the same question of, pass the entire list of images to the model.
+    Ensure your prompt is specific enough to retrieve the exact information you are looking for.
     
     Args:
         question: The question to ask about the images.  Type: str
         images: The list of images to as the question about.  Type: List[PIL.Image.Image]
     """
-    image_model_name = 'llama3.2-vision'
+    image_model_name = 'gemma3:12b'
+    print(f'Leveraging model {image_model_name}')
     image_model = OpenAIServerModel(
         model_id=image_model_name,
         api_base='http://localhost:11434/v1/',
@@ -77,7 +112,7 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
             "text": question
         }
     ]
-
+    print(f"Asking model a question about {len(images)} images")
     for image in images:
         content.append({
             "type": "image",
@@ -92,6 +127,7 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
     ]
 
     output = image_model(messages).content
+    print(f'Model returned: {output}')
     return output
 
 @tool
@@ -148,61 +184,30 @@ def youtube_frames_to_images(url: str, sample_interval_seconds: int = 5) -> List
         return images
 
 @tool
-def search_item_ctrl_f(text: str, nth_result: int = 1) -> str:
+def read_file(filepath: str ) -> str:
     """
-    Searches for text on the current page via Ctrl + F and jumps to the nth occurrence.
-    Args:
-        text: The text to search for
-        nth_result: Which occurrence to jump to (default: 1)
-    """
-    elements = driver.find_elements(By.XPATH, f"//*[contains(text(), '{text}')]")
-    if nth_result > len(elements):
-        raise Exception(f"Match n°{nth_result} not found (only {len(elements)} matches found)")
-    result = f"Found {len(elements)} matches for '{text}'."
-    elem = elements[nth_result - 1]
-    driver.execute_script("arguments[0].scrollIntoView(true);", elem)
-    result += f"Focused on element {nth_result} of {len(elements)}"
-    return result
-
-
-@tool
-def go_back() -> None:
-    """Used when navigating web pages using Helium.  Goes back to previous page."""
-    driver.back()
-
-
-@tool
-def close_popups() -> str:
-    """
-    Closes any visible modal or pop-up on the page. Use this to dismiss pop-up windows! This does not work on cookie consent banners.
-    """
-    webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
-
-@tool
-def save_and_read_file(content: str, filename: Optional[str] = None) -> str:
-    """
-    Save content to a temporary file and return the path.
-    Useful for processing files from the GAIA API.
+    Used to read the content of a file.  Returns the content as a string.
+    Will only work for text-based files, such as .txt files or code files.
+    Do not use for audio or visual files. 
     
     Args:
-        content: The content to save to the file
-        filename: Optional filename, will generate a random name if not provided
-        
+        filepath (str): The path to the file to be read.
+
     Returns:
-        Path to the saved file
+        str: Content of the file as a string.
+    
+    Raises:
+        IOError: If there is an error opening or reading from the file.
     """
-    temp_dir = tempfile.gettempdir()
-    if filename is None:
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        filepath = temp_file.name
-    else:
-        filepath = os.path.join(temp_dir, filename)
-    
-    # Write content to the file
-    with open(filepath, 'w') as f:
-        f.write(content)
-    
-    return f"File saved to {filepath}. You can read this file to process its contents."
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            content = file.read()
+        print(content)
+        return content
+    except FileNotFoundError:
+        print(f"File not found: {filepath}")
+    except IOError as e:
+        print(f"Error reading file: {str(e)}")
 
 @tool
 def download_file_from_url(url: str, filename: Optional[str] = None) -> str:
@@ -343,6 +348,7 @@ def analyze_excel_file(file_path: str, query: str) -> str:
         return f"Error analyzing Excel file: {str(e)}"
 
 import whisper
+
 @tool
 def youtube_transcribe(url: str) -> str:
     """
@@ -379,6 +385,21 @@ def youtube_transcribe(url: str) -> str:
         result = model.transcribe(audio_path)
         return result['text']
 
+@tool
+def transcribe_audio(audio_file_path: str) -> str:
+    """
+    Transcribes an audio file.  Use when you need to process audio data.
+    DO NOT use this tool for YouTube video; use the youtube_transcribe tool to process audio data from YouTube.
+    Use this tool when you have an audio file in .mp3, .wav, .aac, .ogg, .flac, .m4a, .alac or .wma
 
-global driver
-driver = initialize_driver()
+    Args:
+        audio_file_path: Filepath to the audio file (str)
+    """
+    model_size: str = "small"
+    # Load model
+    model = whisper.load_model(model_size)
+    result = model.transcribe(audio_file_path)
+    return result['text']
+
+# global driver
+# driver = initialize_driver()
