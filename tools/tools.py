@@ -89,7 +89,7 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
     Use a Vision Model to answer a question about a set of images.  
     Always use this tool to ask questions about a set of images you have been provided.
     This function uses an image-to-text AI model.  
-    Send a list of multiple images when possible.  This AI model can handle multiple images.
+    Send a list of multiple images when possible.  This AI model can handle up to 4 images.
     So, if you have multiple images that you want to ask the same question of, pass the entire list of images to the model.
     Ensure your prompt is specific enough to retrieve the exact information you are looking for.
     
