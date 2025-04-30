@@ -18,7 +18,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from smolagents import CodeAgent, tool, OpenAIServerModel
+from smolagents import CodeAgent, tool, OpenAIServerModel, LiteLLMModel
 from smolagents.agents import ActionStep
 
 
@@ -89,7 +89,7 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
     Use a Vision Model to answer a question about a set of images.  
     Always use this tool to ask questions about a set of images you have been provided.
     This function uses an image-to-text AI model.  
-    Send a list of multiple images when possible.  This AI model can handle multiple images.
+    Send a list of multiple images when possible.  
     So, if you have multiple images that you want to ask the same question of, pass the entire list of images to the model.
     Ensure your prompt is specific enough to retrieve the exact information you are looking for.
     
@@ -97,14 +97,19 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
         question: The question to ask about the images.  Type: str
         images: The list of images to as the question about.  Type: List[PIL.Image.Image]
     """
-    image_model_name = 'gemma3:12b'
+    image_model_name = "gemini/gemini-2.0-flash"
+    #image_model_name = 'gemma3:12b'
     print(f'Leveraging model {image_model_name}')
-    image_model = OpenAIServerModel(
-        model_id=image_model_name,
-        api_base='http://localhost:11434/v1/',
-        api_key='ollama',
-        flatten_messages_as_text=False
-    )
+    # image_model = OpenAIServerModel(
+    #     model_id=image_model_name,
+    #     api_base='http://localhost:11434/v1/',
+    #     api_key='ollama',
+    #     flatten_messages_as_text=False
+    # )
+    image_model =LiteLLMModel(model_id=image_model_name, 
+                           api_key=os.getenv("GEMINI_KEY"),
+                           temperature=0.2
+                           )
 
     content = [
         {
