@@ -23,7 +23,7 @@ def check_reasoning(final_answer, agent_memory):
         {final_answer}
         Please check that the reasoning process and results are correct: do they correctly answer the given task?
         First list reasons why yes/no, then write your final decision: PASS in caps lock if it is satisfactory, FAIL if it is not.
-        Don't be harsh: if the result mostly solves the task, it should pass.
+        Be reasonably strict.  You are being graded on your ability to provide the right answer.  You should have >90% confidence that the answer is correct.
         """
     messages = [
         {
