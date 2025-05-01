@@ -1,27 +1,20 @@
 import tempfile
 import requests
 import os
-import numpy as np
-import helium
-import base64
 
-from io import BytesIO
 from time import sleep
 from urllib.parse import urlparse
 from typing import Optional, List
 import yt_dlp
 import imageio
-
+from google.genai import types
 
 from PIL import Image
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-
 from smolagents import CodeAgent, tool, OpenAIServerModel, LiteLLMModel
-from smolagents.agents import ActionStep
+from google import genai
+from dotenv import load_dotenv
 
-
+load_dotenv()
 
 # def save_screenshot(memory_step: ActionStep, agent: CodeAgent) -> None:
 #     sleep(1.0)  # Let JavaScript animations happen before taking the screenshot
@@ -89,7 +82,7 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
     Use a Vision Model to answer a question about a set of images.  
     Always use this tool to ask questions about a set of images you have been provided.
     This function uses an image-to-text AI model.  
-    Send a list of multiple images when possible.  
+    You can ask a question about a list of one image or a list of multiple images.  
     So, if you have multiple images that you want to ask the same question of, pass the entire list of images to the model.
     Ensure your prompt is specific enough to retrieve the exact information you are looking for.
     
@@ -97,9 +90,10 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
         question: The question to ask about the images.  Type: str
         images: The list of images to as the question about.  Type: List[PIL.Image.Image]
     """
-    image_model_name = "gemini/gemini-2.0-flash"
-    #image_model_name = 'gemma3:12b'
+    image_model_name = "gemini/gemini-1.5-flash"
+    
     print(f'Leveraging model {image_model_name}')
+    # image_model_name = 'gemma3:12b'
     # image_model = OpenAIServerModel(
     #     model_id=image_model_name,
     #     api_base='http://localhost:11434/v1/',
@@ -134,6 +128,33 @@ def use_vision_model(question: str, images: List[Image.Image]) -> str:
     output = image_model(messages).content
     print(f'Model returned: {output}')
     return output
+
+@tool
+def review_youtube_video(url: str, question: str) -> str:
+    """
+    Reviews a YouTube video and answers a specific question about that video.  
+
+    Args:
+        url (str): the URL to the YouTube video.  Should be like this format: https://www.youtube.com/watch?v=9hE5-98ZeCg
+        question (str): The question you are asking about the video
+    """
+    try:
+        client = genai.Client(api_key=os.getenv('GEMINI_KEY'))
+        model = 'gemini-2.0-flash-lite'
+        response = client.models.generate_content(
+            model=model,
+            contents=types.Content(
+                parts=[
+                    types.Part(
+                        file_data=types.FileData(file_uri=url)
+                    ),
+                    types.Part(text=question)
+                ]
+            )
+        )
+        return response.text
+    except Exception as e:
+        return f"Error asking {model} about video: {str(e)}"
 
 @tool
 def youtube_frames_to_images(url: str, sample_interval_seconds: int = 5) -> List[Image.Image]:

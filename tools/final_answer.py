@@ -54,6 +54,7 @@ def ensure_formatting(final_answer, agent_memory):
         Ensure the FINAL ANSWER is in the right format as asked for by the task.  Here are the instructions that you need to evaluate:
         YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. 
         If you are asked for a number, don't use commas to write your number.  Don't use units such as $ or percent sign unless specified otherwise. Write your number in Arabic numbers (such as 9 or 3 or 1093) unless specified otherwise.
+        If you are asked for a currency in your answer, use the symbol for that currency.  For example, if you are asked for the answers in USD, an example answer would be $40.00
         If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise. 
         If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.
         If you are asked for a comma separated list, ensure you only return the content of that list, and NOT the brackets '[]'
