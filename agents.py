@@ -27,7 +27,7 @@ from tools.tools import (youtube_frames_to_images, use_vision_model,
                          read_file, download_file_from_url, 
                          extract_text_from_image, analyze_csv_file, 
                          analyze_excel_file, youtube_transcribe,
-                         transcribe_audio)
+                         transcribe_audio, review_youtube_video)
 import os
 from dotenv import load_dotenv
 import time
@@ -108,7 +108,7 @@ class SlowLiteLLMModel(LiteLLMModel):
 #                                 api_key='ollama',
 #                             flatten_messages_as_text=False)
 
-react_model_name = "gemini/gemini-2.5-pro-preview-03-25"
+react_model_name = "gemini/gemini-2.5-flash-preview-04-17"
 react_model = LiteLLMModel(model_id=react_model_name, 
                            api_key=os.getenv("GEMINI_KEY"),
                            temperature=0.2
@@ -119,7 +119,7 @@ manager_agent = CodeAgent(
     model=react_model,
     tools=[FinalAnswerTool(), 
            DuckDuckGoSearchTool(), 
-           VisitWebpageTool(max_output_length=100000), 
+           VisitWebpageTool(max_output_length=500000), 
            WikipediaSearchTool(extract_format='HTML'),
            SpeechToTextTool(),
            youtube_frames_to_images,
@@ -128,11 +128,12 @@ manager_agent = CodeAgent(
            read_file, download_file_from_url, 
            extract_text_from_image, 
            analyze_csv_file, analyze_excel_file,
-           transcribe_audio
+           transcribe_audio,
+           review_youtube_video
            ],
     managed_agents=[],
-    additional_authorized_imports=['os', 'pandas', 'numpy', 'PIL', 'tempfile'],
-    max_steps=10,
+    additional_authorized_imports=['os', 'pandas', 'numpy', 'PIL', 'tempfile', 'PIL.Image'],
+    max_steps=20,
     verbosity_level=1,
     planning_interval=6,
     name="Manager",
