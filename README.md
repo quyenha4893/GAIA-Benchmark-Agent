@@ -7,9 +7,9 @@ I have been experimenting with multiple models as the core agent.  So far, I hav
 - `gemini/gemini-2.5-pro-preview-03-25` Most expensive model from Google
 - `gemini/gemini-2.0-flash-exp`  Available for free, but rate limiting applies.
 
-## Running the solution
+## Running
 
-To run the agent without submitting solutions.  
+To run the agent:  
 ```bash
 poetry install
 poetry run python agents.py
