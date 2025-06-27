@@ -7,6 +7,12 @@ from agents import manager_agent
 from datetime import datetime
 from typing import Optional
 import time
+import mimetypes
+from PIL import Image
+import io
+from tools.tools import (transcribe_audio, analyze_excel_file, 
+                        analyze_csv_file, extract_text_from_image,
+                        use_vision_model)
 
 # (Keep Constants as is)
 # --- Constants ---
@@ -25,29 +31,75 @@ class BasicAgent:
         #time.sleep(60)
         return result
     def answer_question(self, question: str, task_file_path: Optional[str] = None) -> str:
-        """
-        Process a GAIA benchmark question and return the answer
-        
-        Args:
-            question: The question to answer
-            task_file_path: Optional path to a file associated with the question
-            
-        Returns:
-            The answer to the question
-        """
         try:
             if self.verbose:
                 print(f"Processing question: {question}")
                 if task_file_path:
                     print(f"With associated file: {task_file_path}")
-            
-            # Create a context with file information if available
+
             context = question
-            
-            # If there's a file, read it and include its content in the context
-            if task_file_path:
-                try:
+
+            if task_file_path and os.path.exists(task_file_path):
+                ext = os.path.splitext(task_file_path)[1].lower()
+                filetype, _ = mimetypes.guess_type(task_file_path)
+
+                if ext in [".png", ".jpg", ".jpeg"]:
+                    # Image file
+                    img = Image.open(task_file_path)
+                    result = use_vision_model(question, [img])
+                    return self._clean_answer(result)
+                elif ext == ".csv":
+                    # CSV file
+                    df = pd.read_csv(task_file_path)
+                    file_content = df.head(10).to_csv(index=False)
                     context = f"""
+Question: {question}
+
+This question has an associated CSV file uploaded by the user. Here are the first 10 rows:
+
+{file_content}
+
+Analyze the CSV content above to answer the question.
+"""
+                elif ext == ".json":
+                    # JSON file
+                    with open(task_file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        import json
+                        data = json.load(f)
+                    file_content = str(data)
+                    context = f"""
+Question: {question}
+
+This question has an associated JSON file uploaded by the user. Here is its content:
+
+{file_content}
+
+Analyze the JSON content above to answer the question.
+"""
+                elif filetype and filetype.startswith("text"):
+                    # Plain text file
+                    with open(task_file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        file_content = f.read()
+                    context = f"""
+Question: {question}
+
+This question has an associated text file uploaded by the user. Here is its content:
+
+{file_content}
+
+Analyze the file content above to answer the question.
+"""
+                else:
+                    # Unknown or unsupported file type
+                    context = f"""
+Question: {question}
+
+This question has an associated file uploaded by the user: {os.path.basename(task_file_path)}.
+However, the file type is not supported for automatic reading.
+"""
+            elif task_file_path:
+                # Assume it's a remote file (GAIA)
+                context = f"""
 Question: {question}
 
 This question has an associated file. You can download the file from 
@@ -56,15 +108,7 @@ using the download_file_from_url tool.
 
 Analyze the file content above to answer the question.
 """
-                except Exception as file_e:
-                    context = f"""
-Question: {question}
-
-This question has an associated file at path: {task_file_path}
-However, there was an error reading the file: {file_e}
-You can still try to answer the question based on the information provided.
-"""
-            
+                    
             # Check for special cases that need specific formatting
             # Reversed text questions
             if question.startswith(".") or ".rewsna eht sa" in question:
@@ -157,6 +201,47 @@ For example, if asked "What is the capital of France?", respond simply with "Par
             answer = answer[1:-1].strip()
         
         return answer
+    
+# --- New Helper: Fetch GAIA questions without submitting ---
+def fetch_gaia_questions(n: int = 5):
+    """
+    Calls GET /questions to retrieve Level 1 GAIA questions.
+    Returns a list of dicts: [{'task_id': ..., 'question': ...}, ...][:n]
+    """
+    api_url = DEFAULT_API_URL
+    questions_url = f"{api_url}/questions"
+    try:
+        response = requests.get(questions_url, timeout=15)
+        response.raise_for_status()
+        questions_data = response.json()
+        if not isinstance(questions_data, list) or len(questions_data) == 0:
+            print("Fetched questions list is empty or invalid format.")
+            return []
+        return questions_data[:n]
+    except Exception as e:
+        print(f"Error fetching GAIA questions for local test: {e}")
+        return []
+
+
+def evaluate_on_gaia(agent, question_list):
+    """
+    Runs the agent on each GAIA question in question_list.
+    Returns a Pandas DataFrame with columns: ['Task ID', 'Question', 'Agent Answer'].
+    """
+    results = []
+    for item in question_list:
+        task_id = item.get("task_id", "<no-id>")
+        question_text = item.get("question", "")
+        try:
+            agent_answer = agent(question_text)
+        except Exception as e:
+            agent_answer = f"ERROR: {e}"
+        results.append({
+            "Task ID": task_id,
+            "Question": question_text,
+            "Agent Answer": agent_answer
+        })
+    return pd.DataFrame(results)
 
 
 def run_and_submit_all( profile: gr.OAuthProfile | None):
@@ -314,6 +399,96 @@ with gr.Blocks() as demo:
         outputs=[status_output, results_table]
     )
 
+    # --- NEW: Local GAIA test ---
+    index_input = gr.Textbox(
+        label="Question indices to fetch (comma-separated, 1-20)",
+        value=""
+    )
+    local_button = gr.Button("Run Local GAIA Test")
+    local_table = gr.DataFrame(label="Local GAIA Test Results", wrap=True)
+
+    def run_local_gaia_test(indices: str):
+        """
+        1) Instantiate agent
+        2) Fetch any questions from GET /questions
+        3) Run agent on each and return a DataFrame of results
+        """
+        try:
+            agent = BasicAgent()
+        except Exception as e:
+            # Return an empty DataFrame with an error row if instantiation fails
+            return pd.DataFrame([{"Task ID": "<init-failure>", "Question": "", "Agent Answer": f"Init Error: {e}"}])
+        
+        # Parse the user-supplied indices
+        try:
+            picks = [int(x) for x in indices.split(",") if x.strip().isdigit()]
+        except:
+            return pd.DataFrame([{"Task ID": "<input-error>",
+                                  "Question": "",
+                                  "Agent Answer": "Could not parse indices input."}])
+
+        # Fetch *all* 20 GAIA questions
+        questions = fetch_gaia_questions(n=20)
+        if not questions:
+            return pd.DataFrame([{"Task ID": "<fetch-failure>",
+                                  "Question": "",
+                                  "Agent Answer": "Could not fetch GAIA questions."}])
+
+        # Select only those positions the user asked for
+        questions_subset = []
+        for idx in picks:
+            if 1 <= idx <= len(questions):
+                questions_subset.append(questions[idx-1])
+        if not questions_subset:
+            return pd.DataFrame([{"Task ID": "<selection-error>",
+                                  "Question": "",
+                                  "Agent Answer": "No valid question indices selected."}])
+        
+        return evaluate_on_gaia(agent, questions_subset)
+
+    local_button.click(
+        fn=run_local_gaia_test,
+        inputs=[index_input],
+        outputs=[local_table]
+    )
+
+        # --- NEW: Ask Agent Any Question ---
+    gr.Markdown("## Ask the Agent Any Question")
+    user_question_input = gr.Textbox(
+        label="Enter your question for the agent",
+        lines=3,
+        placeholder="Type your question here..."
+    )
+    user_file_input = gr.File(
+        label="Upload a file (optional)",
+        file_count="single",
+        type="filepath"  # Passes the file path as a string
+    )
+    ask_button = gr.Button("Ask Agent")
+    agent_answer_output = gr.Textbox(
+        label="Agent's Answer",
+        lines=3,
+        interactive=False
+    )
+
+    def ask_agent_any_question(question, file):
+        try:
+            agent = BasicAgent()
+            if file:
+                answer = agent(question, file)
+            else:
+                answer = agent(question)
+            return answer
+        except Exception as e:
+            return f"Error: {e}"
+
+    ask_button.click(
+        fn=ask_agent_any_question,
+        inputs=[user_question_input, user_file_input],
+        outputs=[agent_answer_output]
+    )
+    
+
 import sys
 from pathlib import Path
 
@@ -338,14 +513,6 @@ class Tee:
 
 
 if __name__ == "__main__":
-    
-    # Redirect stdout and stderr
-    log_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_file = f"./logs/output_{log_timestamp}.log"
-    tee = Tee(log_file)
-    sys.stdout = tee
-    sys.stderr = tee
-
     print("\n" + "-"*30 + " App Starting " + "-"*30)
     # Check for SPACE_HOST and SPACE_ID at startup for information
     space_host_startup = os.getenv("SPACE_HOST")
@@ -363,6 +530,12 @@ if __name__ == "__main__":
         print(f"   Repo Tree URL: https://huggingface.co/spaces/{space_id_startup}/tree/main")
     else:
         print("ℹ️  SPACE_ID environment variable not found (running locally?). Repo URL cannot be determined.")
+    
+    # Check for required environment variables
+    if not os.getenv("GEMINI_KEY"):
+        print("⚠️ GEMINI_KEY not found in environment variables")
+    else:
+        print("✅ GEMINI_KEY found")
 
     print("-"*(60 + len(" App Starting ")) + "\n")
 

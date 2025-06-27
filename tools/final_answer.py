@@ -1,3 +1,4 @@
+import os
 from typing import Any
 from smolagents.tools import Tool
 from smolagents import LiteLLMModel
@@ -16,8 +17,10 @@ class FinalAnswerTool(Tool):
 
 
 def check_reasoning(final_answer, agent_memory):
-    model_name = 'cogito:14b'
-    multimodal_model = LiteLLMModel(model_id=f'ollama_chat/{model_name}')
+    model_name = "gemini/gemini-2.0-flash-exp"
+    multimodal_model = LiteLLMModel(model_id=model_name, 
+                                   api_key=os.getenv("GEMINI_KEY"),
+                                   temperature=0.2)
     prompt = f"""
         Here is a user-given task and the agent steps: {agent_memory.get_succinct_steps()}. Now here is the answer that was given: 
         {final_answer}
@@ -44,10 +47,11 @@ def check_reasoning(final_answer, agent_memory):
 
 def ensure_formatting(final_answer, agent_memory):
     # Ensure the final answer is formatted correctly
-    model_name = 'granite3.3:8b'
+    model_name = 'gemini/gemini-2.0-flash-exp'
     # Initialize the chat model
-    model = LiteLLMModel(model_id=f'ollama_chat/{model_name}',
-                             flatten_messages_as_text=True)
+    model = LiteLLMModel(model_id=model_name, 
+                        api_key=os.getenv("GEMINI_KEY"), 
+                        flatten_messages_as_text=True)
     prompt = f"""
         Here is a user-given task and the agent steps: {agent_memory.get_succinct_steps()}. Now here is the FINAL ANSWER that was given: 
         {final_answer}

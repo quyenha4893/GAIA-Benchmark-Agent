@@ -2,8 +2,8 @@
 name = "huggingface-final-assignment"
 version = "0.1.0"
 description = "Final Assignment for Hugging Face AI Agents Course"
-authors = ["Samuel Grummons <samuel.grummons@gmail.com>"]
 readme = "README.md"
+packages = [{include = "*.py"}]
 
 [tool.poetry.dependencies]
 python = "3.12.6"

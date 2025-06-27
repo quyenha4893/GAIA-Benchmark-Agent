@@ -2,26 +2,10 @@
 
 This is my final assignment for the [Hugging Face AI Agents Course](https://huggingface.co/learn/agents-course/unit0/introduction).
 
-## Dependencies
-
-This does require some hardware to run on.  I am running it on an Apple Silicon M1 MAX.
-
-The following needs to be installed on your system:
-- `ollama` (for running models)
-- `ffmpeg` (for saving YouTube videos for the agent to review)
-- `poetry` (for managing dependencies)
 
 I have been experimenting with multiple models as the core agent.  So far, I have only been able to pass the GAIA benchmark using large models from Google.  These models require an API key from [Google AI Studio](https://aistudio.google.com/).
-- `gemini/gemini-2.5-pro-preview-03-25` Most expensive model from Google, but returned 14/20 score
+- `gemini/gemini-2.5-pro-preview-03-25` Most expensive model from Google
 - `gemini/gemini-2.0-flash-exp`  Available for free, but rate limiting applies.
-
-
-I have tried to offload some AI processing to smaller models from Ollama.  I use `cogito` to review the answer for correctness, and `granite3.3` to evaluate whether the answer meets the formatting requirements.  I've used `gemma3` to evaaluate images.
-```bash
-ollama pull granite3.3:8b
-ollama pull cogito:14b
-ollama pull gemma3:12b
-```
 
 ## Running the solution
 
